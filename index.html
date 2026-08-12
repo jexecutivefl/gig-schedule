@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Duty Board — Weekly Route Manifest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0A0D12;
+    --panel:#12161D;
+    --panel-raised:#1A2029;
+    --hairline:#242B36;
+    --peak:#FFB627;
+    --peak-dim:#4A3A14;
+    --mid:#5EA8A7;
+    --mid-dim:#1E3433;
+    --low:#5A6472;
+    --low-dim:#232A34;
+    --danger:#E6553A;
+    --danger-dim:#3A2019;
+    --sleep:#8B7FC9;
+    --sleep-dim:#241F3A;
+    --text-1:#EDEFF3;
+    --text-2:#8891A0;
+    --text-3:#565E6D;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--void);color:var(--text-1);}
+  body{
+    font-family:'Inter',sans-serif;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-top: env(safe-area-inset-top);
+  }
+  .display{font-family:'Big Shoulders Display',sans-serif; font-weight:800; text-transform:uppercase; letter-spacing:0.01em;}
+  .mono{font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums;}
+
+  /* ---- NOW TICKER ---- */
+  .ticker{
+    position:sticky; top:0; z-index:30;
+    background:linear-gradient(180deg,#12161D 0%, #0D1015 100%);
+    border-bottom:1px solid var(--hairline);
+    padding:14px 16px 12px;
+  }
+  .ticker-row1{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px;}
+  .ticker-clock{font-size:13px; color:var(--text-2); letter-spacing:0.06em;}
+  .ticker-clock b{color:var(--text-1); font-weight:500;}
+  .ticker-label{font-size:10px; color:var(--text-3); letter-spacing:0.14em; text-transform:uppercase;}
+  .flipcard{
+    background:var(--panel-raised);
+    border:1px solid var(--hairline);
+    border-left:4px solid var(--peak);
+    border-radius:8px;
+    padding:12px 14px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    transition:border-left-color .3s ease;
+  }
+  .flipcard.tier-low{border-left-color:var(--low);}
+  .flipcard.tier-mid{border-left-color:var(--mid);}
+  .flipcard.tier-sleep{border-left-color:var(--sleep);}
+  .flipcard.tier-danger{border-left-color:var(--danger);}
+  .flipcard-main .fc-app{font-size:11px; letter-spacing:0.12em; color:var(--text-2); margin-bottom:2px;}
+  .flipcard-main .fc-title{font-size:20px; line-height:1.1;}
+  .flipcard-main .fc-sub{font-size:12px; color:var(--text-2); margin-top:3px;}
+  .flipcard-target{font-size:18px; color:var(--peak); text-align:right; white-space:nowrap;}
+  .flipcard.tier-low .flipcard-target{color:var(--low);}
+  .flipcard.tier-mid .flipcard-target{color:var(--mid);}
+  .flipcard.tier-sleep .flipcard-target{color:var(--sleep);}
+  .flipcard.tier-danger .flipcard-target{color:var(--danger);}
+  .flipcard-target span{display:block; font-size:9px; color:var(--text-3); letter-spacing:0.1em; font-family:'Inter'; margin-top:2px;}
+
+  /* ---- DAY NAV ---- */
+  .daynav{
+    position:sticky; top:96px; z-index:20;
+    display:flex; gap:6px; overflow-x:auto;
+    padding:10px 16px; background:var(--void);
+    border-bottom:1px solid var(--hairline);
+    scrollbar-width:none;
+  }
+  .daynav::-webkit-scrollbar{display:none;}
+  .daynav button{
+    flex:0 0 auto;
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;
+    color:var(--text-2); background:var(--panel);
+    border:1px solid var(--hairline); border-radius:20px;
+    padding:7px 13px; letter-spacing:0.04em;
+  }
+  .daynav button.active{background:var(--peak); color:#151109; border-color:var(--peak); font-weight:700;}
+  .daynav button .dtot{display:block; font-size:9px; opacity:0.75; margin-top:1px;}
+
+  /* ---- HERO ---- */
+  .hero{padding:22px 16px 6px;}
+  .hero-eyebrow{font-size:11px; color:var(--text-3); letter-spacing:0.16em; text-transform:uppercase; margin-bottom:4px;}
+  .hero h1{font-size:34px; margin:0 0 6px; line-height:0.95;}
+  .hero p{font-size:14px; color:var(--text-2); margin:0; line-height:1.5; max-width:46ch;}
+
+  /* ---- DAY SECTION ---- */
+  .day-section{padding:20px 16px 8px; scroll-margin-top:150px;}
+  .day-header{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--hairline);}
+  .day-header h2{font-size:26px; margin:0;}
+  .day-header .day-range{font-size:11px; color:var(--peak); font-family:'JetBrains Mono'; text-align:right;}
+  .day-header .day-range div:last-child{color:var(--text-3); font-size:10px; margin-top:1px;}
+
+  .timeline{position:relative; padding-left:2px;}
+  .block{
+    position:relative;
+    display:flex; gap:12px;
+    padding:0 0 18px 16px;
+    border-left:2px solid var(--hairline);
+    margin-left:5px;
+  }
+  .block:last-child{border-left-color:transparent; padding-bottom:2px;}
+  .block::before{
+    content:''; position:absolute; left:-6px; top:3px;
+    width:10px; height:10px; border-radius:50%;
+    background:var(--low); border:2px solid var(--void);
+  }
+  .block.tier-peak::before{background:var(--peak);}
+  .block.tier-mid::before{background:var(--mid);}
+  .block.tier-low::before{background:var(--low);}
+  .block.tier-sleep::before{background:var(--sleep);}
+  .block.tier-danger::before{background:var(--danger);}
+
+  .block-card{flex:1; background:var(--panel); border:1px solid var(--hairline); border-radius:10px; padding:12px 14px; }
+  .block-time{font-family:'JetBrains Mono'; font-size:12px; color:var(--text-2); letter-spacing:0.03em; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;}
+  .tag{font-size:9px; letter-spacing:0.1em; padding:2px 7px; border-radius:10px; font-family:'Inter'; font-weight:600;}
+  .tag.tier-peak{background:var(--peak-dim); color:var(--peak);}
+  .tag.tier-mid{background:var(--mid-dim); color:var(--mid);}
+  .tag.tier-low{background:var(--low-dim); color:var(--low);}
+  .tag.tier-sleep{background:var(--sleep-dim); color:var(--sleep);}
+  .tag.tier-danger{background:var(--danger-dim); color:var(--danger);}
+  .block-app{font-size:16px; font-weight:600; margin-bottom:2px;}
+  .block-why{font-size:13px; color:var(--text-2); line-height:1.4; margin-bottom:6px;}
+  .block-target{font-family:'JetBrains Mono'; font-size:13px; color:var(--text-1); display:flex; justify-content:space-between; align-items:center;}
+  .block-target b{color:var(--peak); font-weight:700;}
+  .block.tier-mid .block-target b{color:var(--mid);}
+  .block.tier-low .block-target b{color:var(--low);}
+  .block.tier-sleep .block-target b{color:var(--sleep);}
+
+  .now-flag{font-size:9px; background:var(--peak); color:#151109; padding:2px 6px; border-radius:4px; letter-spacing:0.08em; font-weight:700; animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.55;}}
+  @media (prefers-reduced-motion: reduce){ .now-flag{animation:none;} }
+
+  /* ---- WEEK SUMMARY ---- */
+  .summary{margin:24px 16px 16px; background:var(--panel-raised); border:1px solid var(--hairline); border-radius:12px; padding:18px;}
+  .summary h3{margin:0 0 12px; font-size:20px;}
+  .summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 16px;}
+  .summary-item .num{font-family:'JetBrains Mono'; font-size:20px; color:var(--peak); font-weight:700;}
+  .summary-item .lbl{font-size:10px; color:var(--text-3); letter-spacing:0.08em; text-transform:uppercase; margin-top:2px;}
+
+  /* ---- CHARGING LEGEND ---- */
+  .charging{margin:0 16px 16px; background:var(--panel); border:1px solid var(--hairline); border-radius:12px; padding:16px;}
+  .charging h3{margin:0 0 4px; font-size:18px;}
+  .charging p.note{font-size:12px; color:var(--text-2); margin:0 0 12px;}
+  .stop{display:flex; justify-content:space-between; padding:9px 0; border-top:1px solid var(--hairline); font-size:13px;}
+  .stop:first-of-type{border-top:none;}
+  .stop .sname{font-weight:500;}
+  .stop .saddr{font-size:11px; color:var(--text-3); margin-top:1px;}
+  .stop .sdist{font-family:'JetBrains Mono'; font-size:11px; color:var(--text-2); white-space:nowrap; padding-left:10px;}
+
+  /* ---- FOOTER NOTE ---- */
+  .footnote{margin:8px 16px 30px; font-size:12px; color:var(--text-3); line-height:1.6; padding-top:14px; border-top:1px solid var(--hairline);}
+  .footnote b{color:var(--text-2);}
+</style>
+</head>
+<body>
+
+  <div class="ticker">
+    <div class="ticker-row1">
+      <span class="ticker-clock"><b id="clockDay">—</b> · <span id="clockTime" class="mono">--:--</span></span>
+      <span class="ticker-label">On Deck</span>
+    </div>
+    <div class="flipcard" id="nowCard">
+      <div class="flipcard-main">
+        <div class="fc-app" id="nowApp">LOADING</div>
+        <div class="fc-title" id="nowTitle">—</div>
+        <div class="fc-sub" id="nowSub">—</div>
+      </div>
+      <div class="flipcard-target" id="nowTarget">—<span>TARGET</span></div>
+    </div>
+  </div>
+
+  <div class="daynav" id="dayNav"></div>
+
+  <div class="hero">
+    <div class="hero-eyebrow">Route Manifest — Tampa Bay</div>
+    <h1>Duty Board</h1>
+    <p>Seven days, mapped to when this market actually pays: commute, airport, lunch, PM rush, dinner, and the Fri/Sat bar-close window. Floor $200/day. Target $300/day, before expenses.</p>
+  </div>
+
+  <div id="days"></div>
+
+  <div class="summary">
+    <h3>Week at a Glance</h3>
+    <div class="summary-grid">
+      <div class="summary-item"><div class="num">$1,680–2,350</div><div class="lbl">Weekly Range</div></div>
+      <div class="summary-item"><div class="num">$240–335</div><div class="lbl">Avg / Weekday</div></div>
+      <div class="summary-item"><div class="num">2</div><div class="lbl">Bar-Close Nights</div></div>
+      <div class="summary-item"><div class="num">1</div><div class="lbl">Recovery Night (Sun)</div></div>
+    </div>
+  </div>
+
+  <div class="charging">
+    <h3>Charging Stops</h3>
+    <p class="note">Hit whichever's nearest at your scheduled charge block. All 24hr Superchargers.</p>
+    <div class="stop"><div><div class="sname">Gandy Blvd Wawa</div><div class="saddr">W Gandy Blvd, Tampa — bridge midpoint</div></div><div class="sdist">Tampa⇄St.Pete</div></div>
+    <div class="stop"><div><div class="sname">22nd Ave N</div><div class="saddr">St. Petersburg — 20+ stalls, rarely full</div></div><div class="sdist">St. Pete</div></div>
+    <div class="stop"><div><div class="sname">34th St S Wawa</div><div class="saddr">St. Petersburg — south side</div></div><div class="sdist">St. Pete</div></div>
+    <div class="stop"><div><div class="sname">N 50th St Wawa</div><div class="saddr">Tampa — US 41 / I-4</div></div><div class="sdist">Tampa</div></div>
+  </div>
+
+  <div class="footnote">
+    <b>Uber's cap:</b> 12 hrs online driving time, then a mandatory 6 hrs fully offline before it'll let you back on — stopped-and-waiting time (like an airport lot) doesn't count against it, actively driving/queued does. Lyft runs the same structure. Nothing here pushes either limit; the 2–4pm Lyft block is there because that window is dead on Uber anyway, not to dodge a clock.<br><br>
+    <b>Targets are planning ranges</b>, built from typical peak-demand windows, not guarantees — adjust the $ splits once you've got a week of your own actuals against them.<br><br>
+    <b>Sunday ends at 9:30pm on purpose.</b> That's the block that makes Monday's 4am start survivable. Skipping it doesn't add a good hour — it costs you Monday morning, which is one of the best blocks of the week.
+  </div>
+
+<script>
+const DAYS = [
+{ name:"Monday", key:"mon", blocks:[
+  {s:"04:00",e:"09:00",app:"UBER",title:"Airport + Commute Rush",why:"Early TPA departures start stacking at 4am in your area — rides only, no delivery.",tier:"peak",target:"$60–85"},
+  {s:"09:00",e:"09:30",app:"CHARGE",title:"Charge Stop",why:"Top off before the late-morning lull.",tier:"low",target:"—"},
+  {s:"09:30",e:"11:00",app:"UBER",title:"Reposition + Light Rides",why:"Slower window — drift toward your lunch-corridor start point.",tier:"mid",target:"$20–30"},
+  {s:"11:00",e:"13:30",app:"UBER + DOORDASH",title:"Lunch Rush — Stack",why:"Rides primary. Open DoorDash only when the ride queue goes quiet.",tier:"peak",target:"$45–60"},
+  {s:"13:30",e:"14:00",app:"BUFFER",title:"Charge / Reset",why:"Prep to flip platforms.",tier:"low",target:"—"},
+  {s:"14:00",e:"16:00",app:"LYFT + DOORDASH",title:"Dead Zone Fill",why:"Worst window of the day on Uber. Lyft picks up some of the slack; DoorDash fills the rest.",tier:"low",target:"$15–25"},
+  {s:"16:30",e:"19:30",app:"UBER",title:"PM Rush",why:"Strongest block of the day. Rides only — don't let delivery eat this window.",tier:"peak",target:"$60–80"},
+  {s:"19:30",e:"20:00",app:"CHARGE",title:"Dinner / Charge",why:"Quick top-off before dinner demand.",tier:"low",target:"—"},
+  {s:"20:00",e:"22:30",app:"UBER + DOORDASH",title:"Dinner Rush — Stack",why:"Run both. Take whichever pays better in the moment.",tier:"mid",target:"$35–50"},
+  {s:"22:30",e:"03:45",app:"OFF",title:"Sleep",why:"Non-negotiable. The wind-down block's gone — that hour moved to the 4am airport run instead, where it's worth more.",tier:"sleep",target:"—"}
+]},
+{ name:"Tuesday", key:"tue", sameAs:"mon" },
+{ name:"Wednesday", key:"wed", sameAs:"mon" },
+{ name:"Thursday", key:"thu", sameAs:"mon" },
+{ name:"Friday", key:"fri", blocks:[
+  {s:"04:00",e:"09:00",app:"UBER",title:"Airport + Commute Rush",why:"Same 4am airport start as every weekday.",tier:"peak",target:"$60–85"},
+  {s:"09:00",e:"09:30",app:"CHARGE",title:"Charge Stop",why:"Top off.",tier:"low",target:"—"},
+  {s:"09:30",e:"11:00",app:"UBER",title:"Reposition + Light Rides",why:"Standard mid-morning window.",tier:"mid",target:"$20–30"},
+  {s:"11:00",e:"13:30",app:"UBER + DOORDASH",title:"Lunch Rush — Stack",why:"Rides primary, DoorDash filler.",tier:"peak",target:"$45–60"},
+  {s:"13:30",e:"15:30",app:"LYFT + REST",title:"Dead Zone + Nap",why:"Load-bearing block: charge, eat, and actually rest here. You're driving past midnight tonight — this nap is what keeps bar-close safe.",tier:"sleep",target:"$10–15"},
+  {s:"15:30",e:"19:00",app:"UBER",title:"PM Rush → Happy Hour",why:"Commute bleeds straight into Friday happy-hour demand.",tier:"peak",target:"$60–85"},
+  {s:"19:00",e:"19:30",app:"CHARGE",title:"Dinner / Charge",why:"Last full charge before the long night block.",tier:"low",target:"—"},
+  {s:"19:30",e:"23:00",app:"UBER + DOORDASH",title:"Dinner + Early Night",why:"Stack both through the dinner-to-nightlife transition.",tier:"mid",target:"$45–65"},
+  {s:"23:00",e:"02:00",app:"UBER / LYFT",title:"Bar Close — Peak",why:"Best $/hour of the week. Rides only, whichever app is surging harder. Run both apps live, take the higher offer.",tier:"peak",target:"$50–80"},
+  {s:"02:00",e:"02:30",app:"CHARGE",title:"Charge + Head Home",why:"Plug in before crashing.",tier:"low",target:"—"},
+  {s:"02:30",e:"09:30",app:"OFF",title:"Sleep",why:"Full recovery night. Saturday repeats this pattern — you need the tank full.",tier:"sleep",target:"—"}
+]},
+{ name:"Saturday", key:"sat", blocks:[
+  {s:"09:30",e:"10:00",app:"CHARGE",title:"Wake + Top Off",why:"Later start — you were out past 2am. No early commute block on Saturday, don't force one.",tier:"low",target:"—"},
+  {s:"10:00",e:"13:00",app:"UBER",title:"Brunch + Errands",why:"Steadier than a weekday morning, not as sharp as the commute peak.",tier:"mid",target:"$35–50"},
+  {s:"13:00",e:"15:00",app:"LYFT + REST",title:"Dead Zone + Nap",why:"Same load-bearing move as Friday — you're out late again tonight.",tier:"sleep",target:"$15–25"},
+  {s:"15:00",e:"19:00",app:"UBER",title:"PM → Evening Ramp",why:"Builds into dinner reservations and event traffic.",tier:"mid",target:"$45–65"},
+  {s:"19:00",e:"19:30",app:"CHARGE",title:"Dinner / Charge",why:"Top off before the long night block.",tier:"low",target:"—"},
+  {s:"19:30",e:"23:00",app:"UBER + DOORDASH",title:"Dinner + Event Rides",why:"Saturday dinner rushes run later and heavier than weeknights.",tier:"peak",target:"$55–75"},
+  {s:"23:00",e:"02:30",app:"UBER / LYFT",title:"Bar Close — Peak",why:"Usually the single best window of the whole week. Rides only.",tier:"peak",target:"$55–90"},
+  {s:"02:30",e:"03:00",app:"CHARGE",title:"Charge + Head Home",why:"Plug in.",tier:"low",target:"—"},
+  {s:"03:00",e:"10:00",app:"OFF",title:"Sleep",why:"Second late night in a row — protect this one.",tier:"sleep",target:"—"}
+]},
+{ name:"Sunday", key:"sun", blocks:[
+  {s:"10:00",e:"10:30",app:"CHARGE",title:"Wake + Top Off",why:"Recovery day. Ease in.",tier:"low",target:"—"},
+  {s:"10:30",e:"14:00",app:"UBER",title:"Brunch + Travelers",why:"Church, brunch, and Sunday airport travelers keep this steadier than it looks.",tier:"mid",target:"$30–45"},
+  {s:"14:00",e:"16:00",app:"LYFT + DOORDASH",title:"Dead Zone",why:"Good spot for admin — bills, next week's plan — rather than fighting for scraps.",tier:"low",target:"$10–20"},
+  {s:"16:00",e:"19:00",app:"UBER",title:"PM Rush (Lighter)",why:"Sunday PM rush is real but smaller than weekdays.",tier:"mid",target:"$25–40"},
+  {s:"19:00",e:"21:30",app:"DOORDASH + UBER EATS",title:"Sunday Takeout Rush",why:"Sunday-night delivery volume is heavy — worth running both delivery apps here.",tier:"mid",target:"$25–35"},
+  {s:"21:30",e:"03:45",app:"OFF",title:"Full Sleep — Stop Early",why:"This is the block that protects Monday's 4am start. It's an hour tighter than before, but still your longest sleep of the week — don't cut into it further.",tier:"sleep",target:"—"}
+]}
+];
+
+// Resolve sameAs references
+DAYS.forEach(d=>{ if(d.sameAs){ const src=DAYS.find(x=>x.key===d.sameAs); d.blocks = src.blocks; }});
+
+function fmt(t){
+  const [h,m]=t.split(":").map(Number);
+  const ap = h>=12?"PM":"AM";
+  let hh = h%12; if(hh===0) hh=12;
+  return `${hh}:${String(m).padStart(2,"0")}${ap}`;
+}
+
+function toMinutes(t){ const [h,m]=t.split(":").map(Number); return h*60+m; }
+
+// Build day nav
+const dayNav = document.getElementById("dayNav");
+DAYS.forEach(d=>{
+  const btn = document.createElement("button");
+  btn.textContent = d.name.slice(0,3).toUpperCase();
+  btn.dataset.key = d.key;
+  btn.onclick = ()=> document.getElementById("day-"+d.key).scrollIntoView({behavior:"smooth", block:"start"});
+  dayNav.appendChild(btn);
+});
+
+// Build day sections
+const daysWrap = document.getElementById("days");
+const rangeLabels = {mon:"MON",tue:"TUE",wed:"WED",thu:"THU",fri:"FRI",sat:"SAT",sun:"SUN"};
+DAYS.forEach(d=>{
+  const sec = document.createElement("section");
+  sec.className = "day-section";
+  sec.id = "day-"+d.key;
+  const first = d.blocks[0], last = d.blocks[d.blocks.length-1];
+  sec.innerHTML = `
+    <div class="day-header">
+      <h2>${d.name}</h2>
+      <div class="day-range">${fmt(first.s)}–${fmt(last.e==="04:45"?"04:45":last.e)}<div>${d.blocks.length} blocks</div></div>
+    </div>
+    <div class="timeline"></div>`;
+  const tl = sec.querySelector(".timeline");
+  d.blocks.forEach(b=>{
+    const el = document.createElement("div");
+    el.className = "block tier-"+b.tier;
+    el.dataset.day = d.key; el.dataset.s = b.s; el.dataset.e = b.e;
+    el.innerHTML = `
+      <div class="block-card">
+        <div class="block-time"><span>${fmt(b.s)} – ${fmt(b.e)}</span><span class="tag tier-${b.tier}">${b.tier}</span></div>
+        <div class="block-app">${b.app}</div>
+        <div class="block-why"><b style="color:var(--text-1);font-weight:600;">${b.title}.</b> ${b.why}</div>
+        <div class="block-target"><span>Target</span><b>${b.target}</b></div>
+      </div>`;
+    tl.appendChild(el);
+  });
+  daysWrap.appendChild(sec);
+});
+
+// Live clock + "on deck" resolution
+const dayKeyOrder = ["sun","mon","tue","wed","thu","fri","sat"];
+function currentBlockFor(now){
+  const jsDay = now.getDay(); // 0=sun
+  const key = dayKeyOrder[jsDay];
+  const mins = now.getHours()*60 + now.getMinutes();
+  const dayData = DAYS.find(d=>d.key===key);
+  for(const b of dayData.blocks){
+    let sMin = toMinutes(b.s), eMin = toMinutes(b.e);
+    if(eMin <= sMin){ // crosses midnight
+      if(mins >= sMin || mins < eMin) return {key, b};
+    } else {
+      if(mins >= sMin && mins < eMin) return {key, b};
+    }
+  }
+  return {key, b:dayData.blocks[0]};
+}
+
+function tick(){
+  const now = new Date();
+  document.getElementById("clockDay").textContent = now.toLocaleDateString(undefined,{weekday:"long"});
+  document.getElementById("clockTime").textContent = now.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+
+  const {key,b} = currentBlockFor(now);
+  const card = document.getElementById("nowCard");
+  card.className = "flipcard tier-"+b.tier;
+  document.getElementById("nowApp").textContent = b.app;
+  document.getElementById("nowTitle").textContent = b.title;
+  document.getElementById("nowSub").textContent = `until ${fmt(b.e)} · ${b.why}`;
+  document.getElementById("nowTarget").innerHTML = `${b.target}<span>TARGET</span>`;
+
+  // highlight active day nav
+  document.querySelectorAll("#dayNav button").forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.key===key);
+  });
+
+  // flag the live block in timeline
+  document.querySelectorAll(".block").forEach(el=>{
+    const isNow = el.dataset.day===key && el.dataset.s===b.s && el.dataset.e===b.e;
+    let flag = el.querySelector(".now-flag");
+    if(isNow && !flag){
+      flag = document.createElement("span");
+      flag.className = "now-flag";
+      flag.textContent = "NOW";
+      el.querySelector(".block-time").appendChild(flag);
+    } else if(!isNow && flag){
+      flag.remove();
+    }
+  });
+}
+tick();
+setInterval(tick, 30000);
+</script>
+</body>
+</html>
